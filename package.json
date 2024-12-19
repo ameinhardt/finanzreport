@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@9.15.0",
-  "author": "Axel Meinhardt <axel.meinhardt@itiergarten.de>",
+  "description": "A webbased tool to locally parse bank pdf statements",
+  "author": "Axel Meinhardt <axel.meinhardt@itiergarten.de> (https://www.itiergarten.de/)",
+  "license": "MIT",
+  "main": "./dist/client/index.html",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
