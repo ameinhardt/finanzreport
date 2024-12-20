@@ -1,9 +1,9 @@
 import { presetDaisy } from '@ameinhardt/unocss-preset-daisy';
 import colors from 'daisyui/src/theming/index.js';
-import { defineConfig, presetAttributify, presetTypography, presetWind, transformerDirectives, transformerVariantGroup } from 'unocss';
+import { defineConfig, presetIcons, presetWind, transformerDirectives, transformerVariantGroup } from 'unocss';
 
 export default defineConfig({
-  presets: [presetAttributify(), presetTypography(), presetWind(), presetDaisy({
+  presets: [presetWind(), presetIcons(), presetDaisy({
     themes: ['light', 'dark']
   })],
   rules: [
