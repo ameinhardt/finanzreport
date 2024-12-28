@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+env:
+  BASE_URL: /finanzreport/
+
+jobs:
+  build_demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: npm i -g pnpm
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: pnpm
+          registry-url: https://registry.npmjs.org/
+
+      - run: pnpm install
+
+      - run: pnpm build
+
+      - name: Upload static files as artifact
+        id: deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  # Deployment job
+  deploy:
+    needs: build_demo
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -8,6 +8,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "paths": {},
+    "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": true,
     "strict": true,
@@ -18,5 +19,5 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["node_modules/vite/client.d.ts", "**/*"]
+  "include": ["node_modules/vite/client.d.ts", "src/*"]
 }

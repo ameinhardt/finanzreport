@@ -2,6 +2,7 @@ import process from 'node:process';
 import preact from '@preact/preset-vite';
 import Unocss from 'unocss/vite';
 import { defineConfig } from 'vite';
+import { viteSingleFile } from 'vite-plugin-singlefile';
 import packageJson from './package.json' with { type: 'json' };
 
 for (const key of ['name', 'author', 'version'] as const) {
@@ -10,5 +11,5 @@ for (const key of ['name', 'author', 'version'] as const) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [Unocss(), preact()]
+  plugins: [Unocss(), preact(), viteSingleFile()]
 });
