@@ -34,6 +34,8 @@ export interface Report {
   }
 }
 
+export class ParsingError extends Error {};
+
 const EURORE = /^[+-]?\d{1,3}(?:\.\d{3})*(?:,\d+)?$/,
   DATERE = /^(?<day>\d\d)\.(?<month>\d\d)\.(?<year>\d{4})$/,
   // PROCESSREFERENCERE = /^(.*)([\dA-Z]{3}\d{5}[0-9A-O]\d{7}\/\d+|\d{15})$/; // https://community.comdirect.de/t5/wertpapiere-anlage/was-bedeuten-die-nummern-auf-wertpapierabrechnungen/m-p/12936#messageview_0
@@ -42,9 +44,9 @@ const EURORE = /^[+-]?\d{1,3}(?:\.\d{3})*(?:,\d+)?$/,
 // pdfjs.GlobalWorkerOptions.workerSrc = 'pdfjs-dist/build/pdf.worker.js';
 pdfjs.GlobalWorkerOptions.workerPort = new WorkerSrc();
 
-function assert(expression: boolean): asserts expression is true {
+function assert(expression: boolean, error = 'unexpected assertion'): asserts expression is true {
   if (expression !== true) {
-    throw new Error('unexpected assertion');
+    throw new ParsingError(error);
   }
 }
 
@@ -55,7 +57,7 @@ const saldos: Record<string, Map<Date, number>> = {},
       saldo = textToCents(saldoStr),
       previous = saldos[name].get(date);
     if (previous != null) {
-      assert(previous === saldo);
+      assert(previous === saldo, 'saldo doesn\'t match existing record');
     } else {
       saldos[name].set(date, saldo);
     }
@@ -103,26 +105,26 @@ async function readFile(file: File): Promise<Text[]> {
 }
 
 function textToCents(str: string) {
-  assert(EURORE.test(str));
+  assert(EURORE.test(str), 'Unexpected currency value');
   return Number.parseInt(str.replace(/[.,]/g, ''));
 }
 
 function textToDate(str: string) {
   const match = str.match(DATERE);
-  assert(match != null);
+  assert(match != null, 'not a date string');
   const { day, month, year } = match?.groups as { day: '\d\d', month: '\d\d', year: '\d\d\d\d' };
   return new Date(`${year}-${month}-${day}`);
 }
 
 function popNextSection(textItems: Text[]) {
-  assert(textItems[0].s > 9); // start with a caption
+  assert(textItems.length > 0 && textItems[0].s > 9, 'no account section found'); // start with a caption
   const caption = textItems.shift()!,
     endIdx = textItems.findIndex(({ s }) => s > 9);
   return [caption, ...textItems.splice(0, !~endIdx ? textItems.length : endIdx)]; // return until or empty all
 }
 
 function getOverview(textItems: Text[]): Report {
-  assert(['Kontoübersicht', 'Ihre aktuellen Salden', 'IBAN', 'Saldo in', 'EUR'].every((str, i) => textItems[i].str === str));
+  assert(['Kontoübersicht', 'Ihre aktuellen Salden', 'IBAN', 'Saldo in', 'EUR'].every((str, i) => textItems[i].str === str), 'unexpected overview structure');
   const overviewItems = textItems.slice(5),
     rows = Object.groupBy(overviewItems, ({ y }) => y) as Record<number, Text[]>,
     summaryRow = rows[Math.min(...Object.keys(rows).map(Number.parseFloat))], // the lowest y row
@@ -143,7 +145,7 @@ function getOverview(textItems: Text[]): Report {
             transactions: []
           }]));
 
-  assert(Object.values(accounts).reduce((partialSum, { amount }) => partialSum + amount, 0) === summary.sum);
+  assert(Object.values(accounts).reduce((partialSum, { amount }) => partialSum + amount, 0) === summary.sum, 'sum of accounts does\'t match total');
   return {
     accounts,
     summary
@@ -174,7 +176,7 @@ function *getTransactions(section: Text[], name: string): Generator<Transaction>
       processReference += items[iter++].str;
     }
     const match = processReference.match(PROCESSREFERENCERE);
-    assert(match != null);
+    assert(match != null, 'unexpected process reference string');
     transaction.process = match![1];
     transaction.reference = match![2];
     if (hasIssuer) {
@@ -195,25 +197,31 @@ function *getTransactions(section: Text[], name: string): Generator<Transaction>
 
 export async function *getReports(fileList: FileList): AsyncGenerator<Report> {
   for (const file of Array.from(fileList)) {
-    const fileText = await readFile(file),
-      report = getOverview(popNextSection(fileText));
-    while (fileText.length > 0) {
-      const section = popNextSection(fileText),
-        name = section[0].str;
-      if (name === 'Depot') {
+    try {
+      const fileText = await readFile(file).catch((err) => {
+          throw new ParsingError((err as Error).message);
+        }),
+        report = getOverview(popNextSection(fileText));
+      while (fileText.length > 0) {
+        const section = popNextSection(fileText),
+          name = section[0].str;
+        if (name === 'Depot') {
         // Todo: not yet implemented
-        break;
-      }
-      if (name === 'Steuerübersicht') {
-        break;
-      }
-      // section must have been mentioned in overview
-      assert(report.accounts[name] != null);
+          break;
+        }
+        if (name === 'Steuerübersicht') {
+          break;
+        }
+        // section must have been mentioned in overview
+        assert(report.accounts[name] != null, 'unknown account section');
 
-      for (const transaction of getTransactions(section, name)) {
-        report.accounts[name].transactions.push(transaction);
+        for (const transaction of getTransactions(section, name)) {
+          report.accounts[name].transactions.push(transaction);
+        }
       }
+      yield report;
+    } catch (err) {
+      throw new ParsingError(`${file.name}: ${(err as Error).message}`);
     }
-    yield report;
   }
 }

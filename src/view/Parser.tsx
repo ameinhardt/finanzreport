@@ -1,12 +1,22 @@
 import type { TargetedEvent } from 'preact/compat';
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import pkgJson from '../../package.json';
-import { getReports, type Report } from '../pdftools';
+import { getReports, ParsingError, type Report } from '../pdftools';
 
 const REPOSITORY = (pkgJson.repository as Record<string, string>).url;
 
 export default function Parser({ onReports }: { onReports: (reports: Report[]) => void }) {
-  const [progressBar, setProgressBar] = useState<number | undefined>();
+  const [progressBar, setProgressBar] = useState<number | undefined>(),
+    [error, setError] = useState<string | undefined>(undefined),
+    dialog = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (error == null) {
+      dialog.current?.close();
+    } else {
+      dialog.current?.showModal();
+    }
+  }, [error]);
 
   async function processFiles(event: TargetedEvent<HTMLInputElement, Event>) {
     const fileList = (event.target as HTMLInputElement).files;
@@ -23,6 +33,16 @@ export default function Parser({ onReports }: { onReports: (reports: Report[]) =
         reports.push(report);
       }
       onReports(reports);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(err);
+      if (err instanceof ParsingError) {
+        setError(err.message);
+      } else if (err instanceof Error) {
+        setError(`Unexpected error: ${err.message}`);
+      } else {
+        setError('unknown error');
+      }
     } finally {
       setProgressBar(undefined);
     }
@@ -61,8 +81,9 @@ export default function Parser({ onReports }: { onReports: (reports: Report[]) =
                 ? (
                     <input
                       type="file"
+                      accept=".pdf"
                       multiple
-                      class="file-input file-input-bordered file-input-primary"
+                      class="w-full file-input file-input-bordered file-input-primary"
                       onChange={(event) => void processFiles(event)}
                     />
                   )
@@ -73,6 +94,16 @@ export default function Parser({ onReports }: { onReports: (reports: Report[]) =
           </div>
         </div>
       </div>
+      <dialog ref={dialog} class="modal" onClose={() => setError(undefined)}>
+        <div class="relative modal-box">
+          <button type="button" class="absolute right-2 top-2 btn btn-circle btn-ghost btn-sm" onClick={() => dialog.current?.close()}>✕</button>
+          <h3 class="text-lg font-bold">Error</h3>
+          <p class="py-4">{ error }</p>
+          <div class="modal-action">
+            <button type="button" class="btn" onClick={() => dialog.current?.close()}>Close</button>
+          </div>
+        </div>
+      </dialog>
     </div>
   );
 }

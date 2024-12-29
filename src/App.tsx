@@ -22,8 +22,7 @@ function formatEuro(amount: number) {
 }
 
 export function App() {
-  const [csvContent, setCsvContent] = useState<[string, string][]>([]),
-    [accounts, setAccounts] = useState<Record<string, Account>>(),
+  const [accounts, setAccounts] = useState<Record<string, Account>>(),
     [tab, setTab] = useState<string>(),
     [tabHighlight, setTabHighlight] = useState<[number, number]>(),
     main = useRef<HTMLDivElement>(null),
