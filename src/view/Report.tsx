@@ -1,4 +1,4 @@
-import type { Account } from '../pdftools.js';
+import type { Account, Transaction } from '../pdftools.js';
 import classNames from 'classnames';
 import { useEffect, useRef, useState } from 'preact/compat';
 
@@ -16,6 +16,28 @@ function formatEuro(amount: number) {
     return 'unknown';
   }
   return CurrencyFormatter.format(amount / 100);
+}
+
+function downloadTransactionCsv(transactions: Transaction[], filename: string) {
+  const rows = transactions.map(({ amount, dateOfEntry, issuer, process, reference, text, valuta }) => [
+      dateOfEntry.toISOString().substring(0, 10),
+      valuta.toISOString().substring(0, 10),
+      amount.toString().replace(/(\d+)(\d\d)/, '$1.$2'),
+      issuer,
+      process,
+      reference,
+      text
+    ].join(';')),
+    url = window.URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv' })),
+    a = document.createElement('a');
+  document.body.appendChild(a);
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => {
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }, 0);
 }
 
 export default function Report({ accounts }: { accounts: Record<string, Account> }) {
@@ -91,7 +113,7 @@ export default function Report({ accounts }: { accounts: Record<string, Account>
                   <>
                     <div class="pr-8 text-left lg:col-start-3">Transactions:</div>
                     <div>
-                      <div class="btn btn-primary btn-sm">csv</div>
+                      <div class="btn btn-primary btn-sm" onClick={() => downloadTransactionCsv(accounts[tab].transactions, `${tab}.csv`)}>csv</div>
                     </div>
                   </>
                 )}

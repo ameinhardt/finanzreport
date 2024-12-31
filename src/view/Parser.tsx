@@ -53,7 +53,13 @@ export default function Parser({ onReports }: { onReports: (reports: Report[]) =
       <div class="mx-auto h-screen hero container">
         <div class="grid w-full justify-items-center gap-4 hero-content lg:grid-cols-2">
           <div class="text-center lg:order-2 lg:text-left">
-            <h1 class="text-5xl font-bold">Finanzreport</h1>
+            <h1 class="text-5xl font-bold">
+              Finanzreport
+              <span class="align-top font-size-sm">
+                v
+                {import.meta.env.VITE_VERSION}
+              </span>
+            </h1>
             <p class="py-6">
               Comdirect Finanzreport_*.pdf files are (batch) downloadable from your
               {' '}
@@ -68,12 +74,12 @@ export default function Parser({ onReports }: { onReports: (reports: Report[]) =
                 github
               </a>
               {' '}
-              for sourcecode.
+              for source code.
             </p>
           </div>
           <div role="alert" class="order-3 flex alert alert-success">
             <div class="anim-pulse i-mdi-lightbulb-variant-outline animate-pulse animate-duration-5000 text-2xl text-orange"></div>
-            All data is processed locally. You can download this standalone html and run offline.
+            All data is processed locally. You can download this standalone HTML and run offline.
           </div>
           <div class="align-center row-span-2 w-full bg-base-100 shadow-2xl card lg:max-w-sm">
             <div class="justify-center p-4 card-body lg:p-8">

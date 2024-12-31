@@ -1,4 +1,4 @@
-import type { Account, Report as ReportType } from './pdftools';
+import type { Account, Report as ReportType } from './pdftools.js';
 import { useEffect, useRef, useState } from 'preact/compat';
 import Animate from './components/Animate';
 import Parser from './view/Parser.js';

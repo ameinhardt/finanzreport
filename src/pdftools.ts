@@ -10,7 +10,7 @@ interface Text {
   y: number
 }
 
-interface Transaction {
+export interface Transaction {
   amount: number
   dateOfEntry: Date
   issuer: string
