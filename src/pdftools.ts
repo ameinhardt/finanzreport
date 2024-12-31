@@ -21,8 +21,9 @@ interface Transaction {
 }
 
 export interface Account {
-  amount: number
+  end: number
   iban?: string
+  start?: number
   transactions: Transaction[]
 }
 
@@ -132,20 +133,20 @@ function getOverview(textItems: Text[]): Report {
       date: textToDate(summaryRow[1].str),
       sum: textToCents(summaryRow[2].str)
     },
-    accounts: Record<string, Account> = Object.fromEntries(Object.values(rows)
+    accounts: Record<string, Omit<Account, 'start'>> = Object.fromEntries(Object.values(rows)
       .filter((row) => row !== summaryRow)
       .map((row) => [row[0].str, row.length > 2
         ? {
-            amount: textToCents(row[2].str),
+            end: textToCents(row[2].str),
             iban: row[1].str,
             transactions: []
           }
         : {
-            amount: textToCents(row[1].str),
+            end: textToCents(row[1].str),
             transactions: []
           }]));
 
-  assert(Object.values(accounts).reduce((partialSum, { amount }) => partialSum + amount, 0) === summary.sum, 'sum of accounts does\'t match total');
+  assert(Object.values(accounts).reduce((partialSum, { end }) => partialSum + end, 0) === summary.sum, 'sum of accounts does\'t match total');
   return {
     accounts,
     summary
@@ -205,19 +206,20 @@ export async function *getReports(fileList: FileList): AsyncGenerator<Report> {
       while (fileText.length > 0) {
         const section = popNextSection(fileText),
           name = section[0].str;
-        if (name === 'Depot') {
-        // Todo: not yet implemented
-          break;
-        }
         if (name === 'Steuerübersicht') {
           break;
         }
         // section must have been mentioned in overview
         assert(report.accounts[name] != null, 'unknown account section');
+        if (name === 'Depot') {
+          // Todo: not yet implemented
+          break;
+        }
 
         for (const transaction of getTransactions(section, name)) {
           report.accounts[name].transactions.push(transaction);
         }
+        report.accounts[name].start = report.accounts[name].transactions.reduce((l, { amount }) => l + amount, report.accounts[name].end);
       }
       yield report;
     } catch (err) {
